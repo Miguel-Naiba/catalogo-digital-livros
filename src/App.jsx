@@ -9,6 +9,7 @@ import Footer from "./components/Footer";
 import CampoBusca from "./components/CampoBusca";
 import FiltroCategoria from "./components/FiltroCategoria";
 import FiltroStatus from "./components/FiltroStatus";
+import FiltroVestibular from "./components/FiltroVestibular";
 import PainelEstatisticas from "./components/PainelEstatisticas";
 import ListaLivros from "./components/ListaLivros";
 
@@ -16,25 +17,22 @@ function App() {
   const [busca, setBusca] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todas");
   const [statusAtivo, setStatusAtivo] = useState("Todos");
-
+  
+  const [vestibularAtivo, setVestibularAtivo] = useState("Vestibular");
+  
   const [favoritos, setFavoritos] = useState(() => {
     const dados = localStorage.getItem("favoritos");
     return dados ? JSON.parse(dados) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem(
-      "favoritos",
-      JSON.stringify(favoritos)
-    );
+    localStorage.setItem("favoritos", JSON.stringify(favoritos));
   }, [favoritos]);
 
   const categorias = useMemo(() => {
     return [
       "Todas",
-      ...new Set(
-        livrosBase.map((livro) => livro.categoria)
-      ),
+      ...new Set(livrosBase.map((livro) => livro.categoria)),
     ];
   }, []);
 
@@ -51,20 +49,38 @@ function App() {
         ${livro.ano ?? ""}
       `.toLowerCase();
 
-      const buscaOK =
-        termo === "" || texto.includes(termo);
+      const buscaOK = termo === "" || texto.includes(termo);
 
-      const categoriaOK =
-        categoriaAtiva === "Todas" ||
-        livro.categoria === categoriaAtiva;
+      const categoryOK = categoriaAtiva === "Todas" || livro.categoria === categoriaAtiva;
 
-      const statusOK =
-        statusAtivo === "Todos" ||
-        livro.status === statusAtivo;
+      const statusOK = statusAtivo === "Todos" || livro.status === statusAtivo;
 
-      return buscaOK && categoriaOK && statusOK;
+      let vestibularOK = true;
+      if (vestibularAtivo === "Vestibular") {
+        vestibularOK = livro.vestibulares && livro.vestibulares.length > 0;
+      } else if (vestibularAtivo !== "Nenhum") {
+        vestibularOK = livro.vestibulares && livro.vestibulares.includes(vestibularAtivo);
+      } 
+
+      return buscaOK && categoryOK && statusOK && vestibularOK;
     });
-  }, [busca, categoriaAtiva, statusAtivo]);
+  }, [busca, categoriaAtiva, statusAtivo, vestibularAtivo]);
+
+ function tratarMudancaVestibular(novoVestibular) {
+    if (vestibularAtivo === novoVestibular) {
+      setVestibularAtivo("Nenhum"); 
+    } else {
+      setVestibularAtivo(novoVestibular); 
+    }
+  }
+
+  function tratarMudancaStatus(novoStatus) {
+    if (statusAtivo === novoStatus) {
+      setStatusAtivo("Todos");
+    } else {
+      setStatusAtivo(novoStatus);
+    }
+  }
 
   function alternarFavorito(id) {
     setFavoritos((antigos) =>
@@ -80,13 +96,8 @@ function App() {
 
       <main className="pagina">
         <section className="hero">
-          <h1>📚 Biblioteca do FD e do SPD</h1>
-
-          <p>
-            Explore livros, descubra novos autores,
-            organize sua coleção e marque seus
-            favoritos.
-          </p>
+          <h1>📚 Biblioteca do FD e do UPD</h1>
+          <p>Explore livros, descubra novos autores, organize sua coleção e marque seus favoritos.</p>
         </section>
 
         <PainelEstatisticas
@@ -97,28 +108,15 @@ function App() {
         />
 
         <section className="filtros">
-          <CampoBusca
-            valor={busca}
-            aoAlterar={setBusca}
-          />
-
-          <FiltroCategoria
-            categorias={categorias}
-            valor={categoriaAtiva}
-            aoAlterar={setCategoriaAtiva}
-          />
-
-          <FiltroStatus
-            valor={statusAtivo}
-            aoAlterar={setStatusAtivo}
-          />
+          <CampoBusca valor={busca} aoAlterar={setBusca} />
+          <FiltroCategoria categorias={categorias} valor={categoriaAtiva} aoAlterar={setCategoriaAtiva} />
+          
+          <FiltroStatus valor={statusAtivo} aoAlterar={tratarMudancaStatus} />
+          
+          <FiltroVestibular valor={vestibularAtivo} aoAlterar={tratarMudancaVestibular} />
         </section>
 
-        <ListaLivros
-          livros={livrosFiltrados}
-          favoritos={favoritos}
-          aoAlternarFavorito={alternarFavorito}
-        />
+        <ListaLivros livros={livrosFiltrados} favoritos={favoritos} aoAlternarFavorito={alternarFavorito} />
       </main>
 
       <Footer />
